@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "outDir": "./images",
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
@@ -20,5 +21,8 @@
   },
   "include": [
     "**/*.ts"
-  ]
+, "pdf-to-images.ts"  ],
+"exclude": [
+  "./images"
+]
 }

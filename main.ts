@@ -1,67 +1,39 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+const { fromPath } = require("pdf2pic");
+const { mkdirsSync, existsSync } = require("fs-extra");
+const rimraf = require("rimraf");
+const fs = require("fs");
+const path = require("path");
+const { PDFDocument } = require("pdf-lib");
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
+interface Settings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: Settings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class PDFBreakdown extends Plugin {
+	settings: Settings;
 
 	async onload() {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('dice', 'PDF Breakdown', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			new Notice('This is a notice!');
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'open-sample-modal-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
+				new FileSelectionModal(this.app).open();
 			}
 		});
 
@@ -91,7 +63,9 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
+
+//make a modal open when the button is clicked
+class FileSelectionModal extends Modal {
 	constructor(app: App) {
 		super(app);
 	}
@@ -107,10 +81,54 @@ class SampleModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+async function convertPdfToImages(pdfPath: string, outputDir: string, dpi = 300) {
+	if (!existsSync(pdfPath)) {
+	  throw new Error("PDF file not found: " + pdfPath);
+	}
+  
+	const pdfBytes = fs.readFileSync(pdfPath);
+	const pdfDoc = await PDFDocument.load(pdfBytes);
+	const firstPage = pdfDoc.getPage(0);
+	const { width, height } = firstPage.getSize();
+	const widthPx = Math.round((width / 72) * dpi);
+	const heightPx = Math.round((height / 72) * dpi);
+  
+	rimraf.sync(outputDir);
+	mkdirsSync(outputDir);
+  
+	const options = {
+	  width: widthPx,
+	  height: heightPx,
+	  density: dpi,
+	  savePath: outputDir,
+	  format: "png"
+	};
+  
+	const convert = fromPath(pdfPath, options);
+	const result = await convert.bulk(-1);
+	return result.map((page: { path: any; }, index: number) => ({
+	  page: index + 1,
+	  path: page.path
+	}));
+  }
+  
+  async function startConversion() { 
+	const input = "./hash.pdf"; //make this user input
+	const output = "./output-images"; //make this user input
+  
+	try {
+	  const pages = await convertPdfToImages(input, output, 300);
+	  console.log("Converted pages:");
+	  pages.forEach((p: { page: any; path: any; }) => console.log(`Page ${p.page}: ${p.path}`));
+	} catch (err) {
+	  console.error("Conversion failed:", err.message);
+	}
+  }
 
-	constructor(app: App, plugin: MyPlugin) {
+class SampleSettingTab extends PluginSettingTab {
+	plugin: PDFBreakdown;
+
+	constructor(app: App, plugin: PDFBreakdown) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
