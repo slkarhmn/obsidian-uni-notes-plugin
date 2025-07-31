@@ -1,10 +1,4 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-const { fromPath } = require("pdf2pic");
-const { mkdirsSync, existsSync } = require("fs-extra");
-const rimraf = require("rimraf");
-const fs = require("fs");
-const path = require("path");
-const { PDFDocument } = require("pdf-lib");
 
 interface Settings {
 	mySetting: string;
@@ -24,20 +18,32 @@ export default class PDFBreakdown extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 
+			const popup = new PathsPopup(this.app);
+			popup.openAndGetPaths().then(([pdfPath, imagesDir, markdownPath]) => {
+			  console.log('PDF Path:', pdfPath);
+			  console.log('Images Directory:', imagesDir);
+			  console.log('Markdown Path:', markdownPath);
+			  
+			  new Notice(`${pdfPath}\n ${imagesDir}\n ${markdownPath}`);
+			  
+			});
 			
+
 		});
+
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		this.addCommand({
+		//TODO: make this add the images and text to the currently open note
+/* 		this.addCommand({
 			id: 'paths-popup',
 			name: 'Convert PDF to Markdown with extracted text',
 			callback: () => {
-				new PathsPopup(this.app, (result) => {
-					new Notice(`Hello, ${result}!`);
+				new PathsPopup(this.app, (pdfPath, imagesDirectory, markdownFilePath) => {
+					new Notice(`${pdfPath}\n ${imagesDirectory}\n ${markdownFilePath}`);
 				  }).open();
 			},
-		  });
+		  }); */
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingsTab(this.app, this));
@@ -67,45 +73,61 @@ export default class PDFBreakdown extends Plugin {
 
 
 export class PathsPopup extends Modal {
-  constructor(app: App, onSubmit: (result: string) => void) {
-    super(app);
-	this.setTitle('PDF Breakdown');
-
-	let pdfPath = '';
-    new Setting(this.contentEl)
-      .setName('PDF Path')
-      .addText((text) =>
-        text.onChange((value) => {
+	private resolve: ((value: [string, string, string]) => void) | null = null;
+  
+	constructor(app: App) {
+	  super(app);
+	  this.setTitle('PDF Breakdown');
+  
+	  let pdfPath = '';
+	  new Setting(this.contentEl)
+		.setName('PDF Path')
+		.addText((text) =>
+		  text.onChange((value) => {
 			pdfPath = value;
-        }));
-
-	let imagesDirectory = '';
-    new Setting(this.contentEl)
-      .setName('Images Output Directory Path')
-      .addText((text) =>
-        text.onChange((value) => {
+		  }));
+  
+	  let imagesDirectory = '';
+	  new Setting(this.contentEl)
+		.setName('Images Output Directory Path')
+		.addText((text) =>
+		  text.onChange((value) => {
 			imagesDirectory = value;
-        }));
-
-	let makrdownFilePath = '';
-    new Setting(this.contentEl)
-      .setName('Markdown Output Path')
-      .addText((text) =>
-        text.onChange((value) => {
-			makrdownFilePath = value;
-        }));
-
-    new Setting(this.contentEl)
-      .addButton((btn) =>
-        btn
-          .setButtonText('Start')
-          .setCta()
-          .onClick(() => {
-            this.close();
-            onSubmit(pdfPath);
-          }));
+		  }));
+  
+	  let markdownFilePath = '';
+	  new Setting(this.contentEl)
+		.setName('Markdown Output Path')
+		.addText((text) =>
+		  text.onChange((value) => {
+			markdownFilePath = value;
+		  }));
+  
+	  new Setting(this.contentEl)
+		.addButton((btn) =>
+		  btn
+			.setButtonText('Start')
+			.setCta()
+			.onClick(() => {
+			  this.close();
+			  if (this.resolve) {
+				this.resolve([pdfPath, imagesDirectory, markdownFilePath]);
+			  }
+			}));
+	}
+  
+	openAndGetPaths(): Promise<[string, string, string]> {
+	  this.open();
+	  return new Promise((resolve) => {
+		this.resolve = resolve;
+	  });
+	}
   }
-}
+
+
+  //TODO: Add default path for attachments/images in settings
+  //TODO: Options to create note in current folder, or assign a folder to contain all the created markdown files
+  
 
 class SettingsTab extends PluginSettingTab {
 	plugin: PDFBreakdown;
