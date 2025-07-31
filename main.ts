@@ -21,24 +21,26 @@ export default class PDFBreakdown extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'PDF Breakdown', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+
+			
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'paths-popup',
+			name: 'Convert PDF to Markdown with extracted text',
 			callback: () => {
-				new FileSelectionModal(this.app).open();
-			}
-		});
+				new PathsPopup(this.app, (result) => {
+					new Notice(`Hello, ${result}!`);
+				  }).open();
+			},
+		  });
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new SettingsTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -64,68 +66,48 @@ export default class PDFBreakdown extends Plugin {
 }
 
 
-//make a modal open when the button is clicked
-class FileSelectionModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+export class PathsPopup extends Modal {
+  constructor(app: App, onSubmit: (result: string) => void) {
+    super(app);
+	this.setTitle('PDF Breakdown');
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+	let pdfPath = '';
+    new Setting(this.contentEl)
+      .setName('PDF Path')
+      .addText((text) =>
+        text.onChange((value) => {
+			pdfPath = value;
+        }));
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+	let imagesDirectory = '';
+    new Setting(this.contentEl)
+      .setName('Images Output Directory Path')
+      .addText((text) =>
+        text.onChange((value) => {
+			imagesDirectory = value;
+        }));
+
+	let makrdownFilePath = '';
+    new Setting(this.contentEl)
+      .setName('Markdown Output Path')
+      .addText((text) =>
+        text.onChange((value) => {
+			makrdownFilePath = value;
+        }));
+
+    new Setting(this.contentEl)
+      .addButton((btn) =>
+        btn
+          .setButtonText('Start')
+          .setCta()
+          .onClick(() => {
+            this.close();
+            onSubmit(pdfPath);
+          }));
+  }
 }
 
-async function convertPdfToImages(pdfPath: string, outputDir: string, dpi = 300) {
-	if (!existsSync(pdfPath)) {
-	  throw new Error("PDF file not found: " + pdfPath);
-	}
-  
-	const pdfBytes = fs.readFileSync(pdfPath);
-	const pdfDoc = await PDFDocument.load(pdfBytes);
-	const firstPage = pdfDoc.getPage(0);
-	const { width, height } = firstPage.getSize();
-	const widthPx = Math.round((width / 72) * dpi);
-	const heightPx = Math.round((height / 72) * dpi);
-  
-	rimraf.sync(outputDir);
-	mkdirsSync(outputDir);
-  
-	const options = {
-	  width: widthPx,
-	  height: heightPx,
-	  density: dpi,
-	  savePath: outputDir,
-	  format: "png"
-	};
-  
-	const convert = fromPath(pdfPath, options);
-	const result = await convert.bulk(-1);
-	return result.map((page: { path: any; }, index: number) => ({
-	  page: index + 1,
-	  path: page.path
-	}));
-  }
-  
-  async function startConversion() { 
-	const input = "./hash.pdf"; //make this user input
-	const output = "./output-images"; //make this user input
-  
-	try {
-	  const pages = await convertPdfToImages(input, output, 300);
-	  console.log("Converted pages:");
-	  pages.forEach((p: { page: any; path: any; }) => console.log(`Page ${p.page}: ${p.path}`));
-	} catch (err) {
-	  console.error("Conversion failed:", err.message);
-	}
-  }
-
-class SampleSettingTab extends PluginSettingTab {
+class SettingsTab extends PluginSettingTab {
 	plugin: PDFBreakdown;
 
 	constructor(app: App, plugin: PDFBreakdown) {
