@@ -1,4 +1,5 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault, FileSystemAdapter, DataAdapter } from 'obsidian';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
 interface Settings {
 	mySetting: string;
@@ -18,13 +19,23 @@ export default class PDFBreakdown extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 
+			const adapter = this.app.vault.adapter;
+
+			if (adapter instanceof FileSystemAdapter) {
+				const vaultRoot = adapter.getBasePath();
+				console.log("Vault is stored at:", vaultRoot);
+			}
+
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(([pdfPath, imagesDir, markdownPath]) => {
 			  console.log('PDF Path:', pdfPath);
 			  console.log('Images Directory:', imagesDir);
 			  console.log('Markdown Path:', markdownPath);
+
+			  //TODO: Use the Vault getFiles() method to list all the files in a vault (there is a sub folder method too)
+			  // this can be used to shorten the file paths from absolute paths to in vault paths
 			  
-			  new Notice(`${pdfPath}\n ${imagesDir}\n ${markdownPath}`);
+			  new Notice(`${pdfPath}\n${imagesDir}\n${markdownPath}`);
 			  
 			});
 			
@@ -35,6 +46,7 @@ export default class PDFBreakdown extends Plugin {
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
 		//TODO: make this add the images and text to the currently open note
+		
 /* 		this.addCommand({
 			id: 'paths-popup',
 			name: 'Convert PDF to Markdown with extracted text',
@@ -90,6 +102,7 @@ export class PathsPopup extends Modal {
 	  let imagesDirectory = '';
 	  new Setting(this.contentEl)
 		.setName('Images Output Directory Path')
+		.setDesc('You can change this to be the default attachments folder in the settings for this plugin.')
 		.addText((text) =>
 		  text.onChange((value) => {
 			imagesDirectory = value;
@@ -98,6 +111,7 @@ export class PathsPopup extends Modal {
 	  let markdownFilePath = '';
 	  new Setting(this.contentEl)
 		.setName('Markdown Output Path')
+		.setDesc('You can change the default output folder in the settings for this plugin')
 		.addText((text) =>
 		  text.onChange((value) => {
 			markdownFilePath = value;
@@ -143,10 +157,21 @@ class SettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Default Image Output Directory')
+			.setDesc('Select where images should be output by default, when no path is entered in the pop up.')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
+				.setPlaceholder('Enter a valid path')
+				.setValue(this.plugin.settings.mySetting)
+				.onChange(async (value) => {
+					this.plugin.settings.mySetting = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Default Markdown Output Location')
+			.setDesc('Select where markdown files should be output by default, when no path is entered in the pop up.')
+			.addText(text => text
+				.setPlaceholder('Enter a valid path')
 				.setValue(this.plugin.settings.mySetting)
 				.onChange(async (value) => {
 					this.plugin.settings.mySetting = value;
