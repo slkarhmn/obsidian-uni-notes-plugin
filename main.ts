@@ -1,5 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault, FileSystemAdapter, DataAdapter } from 'obsidian';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile } from 'obsidian';
 
 interface Settings {
 	mySetting: string;
@@ -24,20 +23,27 @@ export default class PDFBreakdown extends Plugin {
 			if (adapter instanceof FileSystemAdapter) {
 				const vaultRoot = adapter.getBasePath();
 				console.log("Vault is stored at:", vaultRoot);
+				let folderPath = '';
+
+				const text: string = createMarkdownFromImages(folderPath);
+
+				//TODO: make it so each pdf to images conversion creates a new folder in the attachments folder
+				//this folder is the one passed to createMarkdownFromImages();
+				this.app.vault.create('test.md', text);
 			}
+
+			//TODO: use this to append the file paths from the popup into full paths that can be fed into the conversion script
 
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(([pdfPath, imagesDir, markdownPath]) => {
 			  console.log('PDF Path:', pdfPath);
 			  console.log('Images Directory:', imagesDir);
 			  console.log('Markdown Path:', markdownPath);
-
-			  //TODO: Use the Vault getFiles() method to list all the files in a vault (there is a sub folder method too)
-			  // this can be used to shorten the file paths from absolute paths to in vault paths
 			  
 			  new Notice(`${pdfPath}\n${imagesDir}\n${markdownPath}`);
 			  
 			});
+
 			
 
 		});
@@ -137,6 +143,26 @@ export class PathsPopup extends Modal {
 	  });
 	}
   }
+
+  function createMarkdownFromImages(folderPath: string) {
+	const imagePaths: string[] = [];
+
+	const files: TFile[] = this.app.vault.getFiles().filter((file: TFile) =>
+		file.path.startsWith(folderPath)
+	);
+
+	for (let i = 0; i < files.length; i++) {
+		const file = files[i];
+
+		if (file.extension.match(/^(png|jpg|jpeg|gif|webp|svg)$/i)) {
+			imagePaths.push(`![[${file.name}]]`);
+		}
+	}
+
+	console.log("Generated image markdown:", imagePaths);
+	return imagePaths.join("\n");
+}
+
 
 
   //TODO: Add default path for attachments/images in settings
