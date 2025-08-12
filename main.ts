@@ -32,8 +32,6 @@ export default class PDFBreakdown extends Plugin {
 				this.app.vault.create('test.md', text);
 			}
 
-			//TODO: use this to append the file paths from the popup into full paths that can be fed into the conversion script
-
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(([pdfPath, imagesDir, markdownPath]) => {
 			  console.log('PDF Path:', pdfPath);
@@ -163,11 +161,6 @@ export class PathsPopup extends Modal {
 	return imagePaths.join("\n");
 }
 
-
-
-  //TODO: Add default path for attachments/images in settings
-  //TODO: Options to create note in current folder, or assign a folder to contain all the created markdown files
-  
 
 class SettingsTab extends PluginSettingTab {
 	plugin: PDFBreakdown;
