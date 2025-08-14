@@ -1,11 +1,11 @@
 {
-	"id": "pdf-breakdown",
-	"name": "PDF Breakdown",
+	"id": "obsidian-uni-notes-plugin",
+	"name": "Uni Notes",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"description": "An Obsidian Plugin to turn a PDF into a markdown note, complete with extracted text.",
+	"author": "slkarhman",
+	"authorUrl": "https://github.com/slkarhmn",
 	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }

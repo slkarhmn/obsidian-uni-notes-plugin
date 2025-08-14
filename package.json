@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-uni-notes-plugin",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "An Obsidian Plugin to turn a PDF into a markdown note, complete with extracted text. ",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -20,6 +20,7 @@
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
 		"obsidian": "latest",
+		"rollup": "^4.46.2",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
 	},
@@ -30,6 +31,6 @@
 		"pdf-parse": "^1.1.1",
 		"pdf2pic": "^3.2.0",
 		"pdfjs-dist": "^5.4.54",
-		"text-from-image": "^1.1.1"
+		"tesseract.js": "^6.0.1"
 	}
 }

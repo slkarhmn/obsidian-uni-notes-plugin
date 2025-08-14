@@ -30,3 +30,6 @@ hash.pdf
 output/
 
 files/
+
+*.traineddata
+

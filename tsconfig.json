@@ -21,7 +21,7 @@
   },
   "include": [
     "**/*.ts"
-, "pdf-to-images.ts"  ],
+, "converter.js"  ],
 "exclude": [
   "./images"
 ]

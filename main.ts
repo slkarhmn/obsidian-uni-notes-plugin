@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile, Vault } from 'obsidian';
 
 interface Settings {
 	mySetting: string;
@@ -8,48 +8,69 @@ const DEFAULT_SETTINGS: Settings = {
 	mySetting: 'default'
 }
 
-export default class PDFBreakdown extends Plugin {
+export type TextExtractorApi = {
+	extractText: (file: TFile) => Promise<string>
+	canFileBeExtracted: (filePath: string) => boolean
+	isInCache: (file: TFile) => Promise<boolean>
+  }
+
+export function getTextExtractor(): TextExtractorApi | undefined {
+	return (this.app as any).plugins?.plugins?.['text-extractor']?.api
+}
+  
+
+export default class UniNotes extends Plugin {
 	settings: Settings;
 
 	async onload() {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
+		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', async (evt: MouseEvent) => {
+			// Called when the user clicks the icon
 
-			const adapter = this.app.vault.adapter;
-
-			if (adapter instanceof FileSystemAdapter) {
-				const vaultRoot = adapter.getBasePath();
-				console.log("Vault is stored at:", vaultRoot);
-				let folderPath = '';
-
-				const text: string = createMarkdownFromImages(folderPath);
-
-				//TODO: make it so each pdf to images conversion creates a new folder in the attachments folder
-				//this folder is the one passed to createMarkdownFromImages();
-				this.app.vault.create('test.md', text);
-			}
+			let folderPath = '';
 
 			const popup = new PathsPopup(this.app);
-			popup.openAndGetPaths().then(([pdfPath, imagesDir, markdownPath]) => {
+			popup.openAndGetPaths().then(async ([pdfPath, imagesDir, markdownPath, mdFileName]) => {
 			  console.log('PDF Path:', pdfPath);
 			  console.log('Images Directory:', imagesDir);
 			  console.log('Markdown Path:', markdownPath);
+			  console.log('Markdown Path:', mdFileName);
+
+			  folderPath = imagesDir;
 			  
 			  new Notice(`${pdfPath}\n${imagesDir}\n${markdownPath}`);
+
+			  const adapter = this.app.vault.adapter;
+
+			  if (adapter instanceof FileSystemAdapter) {
+				  const vaultRoot = adapter.getBasePath();
+				  console.log("Vault is stored at:", vaultRoot);
+
+				  //TODO: Make a regex that checks what the name of the pdf is and then use that to create the newDirName
+
+				  //TODO: newDirName and folderPath are redundant, make it so only one is used, as the images will be stored in a folder with the name of the pdf
+				  // then this folder will be passed to createMarkdownFromImages()
+				  
+				  let newDirName = 'testDir';
+			
+				  this.app.vault.createFolder(newDirName);
+				  
+				  const text: string = await createMarkdownFromImages(folderPath);
+				  
+				  const newFileName = `${mdFileName}.md`
+				  this.app.vault.create(newFileName, text);
+			  }
 			  
 			});
-
-			
-
 		});
 
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		//TODO: make this add the images and text to the currently open note
+
+		//TODO: make a command to add the images and text to the currently open note
 		
 /* 		this.addCommand({
 			id: 'paths-popup',
@@ -87,13 +108,14 @@ export default class PDFBreakdown extends Plugin {
 	}
 }
 
+//TODO: Make the files searchable to find files from vault inside the pop up
 
 export class PathsPopup extends Modal {
-	private resolve: ((value: [string, string, string]) => void) | null = null;
+	private resolve: ((value: [string, string, string, string]) => void) | null = null;
   
 	constructor(app: App) {
 	  super(app);
-	  this.setTitle('PDF Breakdown');
+	  this.setTitle('Uni Notes PDF to Markdown');
   
 	  let pdfPath = '';
 	  new Setting(this.contentEl)
@@ -111,6 +133,15 @@ export class PathsPopup extends Modal {
 		  text.onChange((value) => {
 			imagesDirectory = value;
 		  }));
+
+		let mdFileName = '';
+		new Setting(this.contentEl)
+			.setName('Markdown File Name')
+			.setDesc('Enter the name of the new Markdown File')
+			.addText((text) =>
+			  text.onChange((value) => {
+				mdFileName = value;
+			  }));
   
 	  let markdownFilePath = '';
 	  new Setting(this.contentEl)
@@ -129,12 +160,12 @@ export class PathsPopup extends Modal {
 			.onClick(() => {
 			  this.close();
 			  if (this.resolve) {
-				this.resolve([pdfPath, imagesDirectory, markdownFilePath]);
+				this.resolve([pdfPath, imagesDirectory, markdownFilePath, mdFileName]);
 			  }
 			}));
 	}
   
-	openAndGetPaths(): Promise<[string, string, string]> {
+	openAndGetPaths(): Promise<[string, string, string, string]> {
 	  this.open();
 	  return new Promise((resolve) => {
 		this.resolve = resolve;
@@ -142,30 +173,43 @@ export class PathsPopup extends Modal {
 	}
   }
 
-  function createMarkdownFromImages(folderPath: string) {
+async function createMarkdownFromImages(folderPath: string) {
 	const imagePaths: string[] = [];
 
-	const files: TFile[] = this.app.vault.getFiles().filter((file: TFile) =>
-		file.path.startsWith(folderPath)
-	);
+	const files: TFile[] = this.app.vault.getFiles()
+		.filter((file: TFile) =>
+			file.path.startsWith(folderPath) &&
+			file.extension.match(/^(png|jpg|jpeg|gif|webp|svg)$/i)
+		)
+		.sort((a: TFile, b: TFile) => a.stat.ctime - b.stat.ctime);
+	
+	
+	for (const file of files) {
+		console.log(file.name)
+		const chosenFile = this.app.vault.getFileByPath(file.path);
+		console.log(chosenFile);
 
-	for (let i = 0; i < files.length; i++) {
-		const file = files[i];
-
-		if (file.extension.match(/^(png|jpg|jpeg|gif|webp|svg)$/i)) {
-			imagePaths.push(`![[${file.name}]]`);
+		var textTwo;
+		
+		if (chosenFile) {
+			textTwo = await getTextExtractor()?.extractText(chosenFile);
+			console.log(textTwo);
+		} else {
+			textTwo = "Text Extraction Failed"
+			console.log("Text Extraction Failed");
 		}
+	
+		imagePaths.push(`![[${file.name}]]` + '\n' + textTwo + '\n');
 	}
 
 	console.log("Generated image markdown:", imagePaths);
 	return imagePaths.join("\n");
 }
 
-
 class SettingsTab extends PluginSettingTab {
-	plugin: PDFBreakdown;
+	plugin: UniNotes;
 
-	constructor(app: App, plugin: PDFBreakdown) {
+	constructor(app: App, plugin: UniNotes) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
