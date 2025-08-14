@@ -1,3 +1,5 @@
+# Obsidian Uni Notes Plugin
+
 **Uni Notes** allows users to extract images and text from a `.pdf` file and link them together in a `.md` file. 
 
 **insert demo of plugin working here**
