@@ -1,4 +1,9 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile, Vault } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile } from 'obsidian';
+import path from 'path';
+import { PDFDocument } from 'pdf-lib';
+import { fromPath } from 'pdf2pic';
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+import { normalizePath } from "obsidian";
 
 interface Settings {
 	mySetting: string;
@@ -17,53 +22,70 @@ export type TextExtractorApi = {
 export function getTextExtractor(): TextExtractorApi | undefined {
 	return (this.app as any).plugins?.plugins?.['text-extractor']?.api
 }
-  
+
 
 export default class UniNotes extends Plugin {
 	settings: Settings;
 
 	async onload() {
+		const workerPath = this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/assets/pdf.worker.js`);
+			try {
+			const res = await fetch(workerPath);
+			if (!res.ok) {
+				throw new Error(`Worker fetch failed: ${res.statusText}`);
+			}
+			console.log("PDF.js worker script is accessible at:", workerPath);
+			} catch (e) {
+			console.error("Could not fetch pdf.worker.js at", workerPath, e);
+			}
+			GlobalWorkerOptions.workerSrc = workerPath;
+			console.log("Set GlobalWorkerOptions.workerSrc to:", workerPath);
+
 		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', async (evt: MouseEvent) => {
-			// Called when the user clicks the icon
-
-			let folderPath = '';
 
 			const popup = new PathsPopup(this.app);
-			popup.openAndGetPaths().then(async ([pdfPath, imagesDir, markdownPath, mdFileName]) => {
+			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName]) => {
 			  console.log('PDF Path:', pdfPath);
-			  console.log('Images Directory:', imagesDir);
+			  console.log('Markdown File Name:', mdFileName);
 			  console.log('Markdown Path:', markdownPath);
-			  console.log('Markdown Path:', mdFileName);
-
-			  folderPath = imagesDir;
 			  
-			  new Notice(`${pdfPath}\n${imagesDir}\n${markdownPath}`);
-
 			  const adapter = this.app.vault.adapter;
 
 			  if (adapter instanceof FileSystemAdapter) {
 				  const vaultRoot = adapter.getBasePath();
 				  console.log("Vault is stored at:", vaultRoot);
 
-				  //TODO: Make a regex that checks what the name of the pdf is and then use that to create the newDirName
+				  //let fullPDFPath = adapter.getFullPath(pdfPath);
+				 let fullPdfFile = this.app.vault.getFileByPath(pdfPath); //this is a TFile it has the file itself
+				 
+				 let imagesDir = path.parse(path.basename(pdfPath)).name;
 
-				  //TODO: newDirName and folderPath are redundant, make it so only one is used, as the images will be stored in a folder with the name of the pdf
-				  // then this folder will be passed to createMarkdownFromImages()
-				  
-				  let newDirName = 'testDir';
+/* 				  if (fullPdfFile != null){
+					convertPdfToImagesInVault(this.app, fullPdfFile, fullOutputPath, 300);
+					convertPdfToImagesInNode(fullPDFPath, fullOutputPath, 300);
+					console.log("PDF to image COMPLETE yaY");
+				  }
+				  else{
+					console.log("oh no")
+				  } 
+*/
+				  let newDirName = `${imagesDir}-output`; 
 			
-				  this.app.vault.createFolder(newDirName);
-				  
-				  const text: string = await createMarkdownFromImages(folderPath);
+				  await this.app.vault.createFolder(newDirName);
+
+				  const images = await convertPDFToImages(pdfPath, newDirName);
+				  images.forEach(imagePath => console.log(imagePath));
+
+				  //let testFolder = 'images'
+				  const text: string = await createMarkdownFromImages(newDirName); //TODO: add a check so if the folder already exists, it'll add a number onto the end
 				  
 				  const newFileName = `${mdFileName}.md`
 				  this.app.vault.create(newFileName, text);
 			  }
 			  
 			});
+			//TODO: add a notice to show the conversion is finished
 		});
 
 		// Perform additional things with the ribbon
@@ -111,7 +133,7 @@ export default class UniNotes extends Plugin {
 //TODO: Make the files searchable to find files from vault inside the pop up
 
 export class PathsPopup extends Modal {
-	private resolve: ((value: [string, string, string, string]) => void) | null = null;
+	private resolve: ((value: [string, string, string]) => void) | null = null;
   
 	constructor(app: App) {
 	  super(app);
@@ -125,14 +147,14 @@ export class PathsPopup extends Modal {
 			pdfPath = value;
 		  }));
   
-	  let imagesDirectory = '';
+/* 	  let imagesDirectory = '';
 	  new Setting(this.contentEl)
 		.setName('Images Output Directory Path')
 		.setDesc('You can change this to be the default attachments folder in the settings for this plugin.')
 		.addText((text) =>
 		  text.onChange((value) => {
 			imagesDirectory = value;
-		  }));
+		  })); */
 
 		let mdFileName = '';
 		new Setting(this.contentEl)
@@ -160,18 +182,66 @@ export class PathsPopup extends Modal {
 			.onClick(() => {
 			  this.close();
 			  if (this.resolve) {
-				this.resolve([pdfPath, imagesDirectory, markdownFilePath, mdFileName]);
+				this.resolve([pdfPath, markdownFilePath, mdFileName]);
 			  }
 			}));
 	}
   
-	openAndGetPaths(): Promise<[string, string, string, string]> {
+	openAndGetPaths(): Promise<[string, string, string]> {
 	  this.open();
 	  return new Promise((resolve) => {
 		this.resolve = resolve;
 	  });
 	}
   }
+
+
+async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300): Promise<string[]> {
+		const adapter = this.app.vault.adapter;
+		const outputPaths: string[] = [];
+	  
+		console.log(`Reading PDF from: ${pdfPath}`);
+		const pdfData = await adapter.readBinary(normalizePath(pdfPath));
+	  
+		console.log(`Loading PDF document...`);
+		const loadingTask = getDocument({ data: pdfData });
+		const pdf = await loadingTask.promise;
+	  
+		console.log(`PDF loaded, total pages: ${pdf.numPages}`);
+	  
+		const scale = dpi / 96;
+	  
+		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+		  console.log(`Rendering page ${pageNumber}...`);
+		  const page = await pdf.getPage(pageNumber);
+		  const viewport = page.getViewport({ scale });
+	  
+		  const canvas = document.createElement("canvas");
+		  const context = canvas.getContext("2d")!;
+		  canvas.width = viewport.width;
+		  canvas.height = viewport.height;
+	  
+		  await page.render({
+			canvas,
+			canvasContext: context,
+			viewport,
+		  }).promise;
+	  
+		  const dataUrl = canvas.toDataURL("image/png");
+		  const base64Data = dataUrl.split(",")[1];
+		  const binary = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+	  
+		  const pageImagePath = normalizePath(`${outputDir}/page-${pageNumber}.png`);
+		  console.log(`Saving page ${pageNumber} image to: ${pageImagePath}`);
+		  await adapter.writeBinary(pageImagePath, binary);
+	  
+		  outputPaths.push(pageImagePath);
+		}
+	  
+		console.log(`All pages rendered and saved.`);
+		return outputPaths;
+	  }
+	  
 
 async function createMarkdownFromImages(folderPath: string) {
 	const imagePaths: string[] = [];

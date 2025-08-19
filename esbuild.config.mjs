@@ -9,9 +9,7 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = process.argv[2] === "production";
 
-// These packages will be bundled into main.js (backend logic)
 const includePackages = [
-  "canvas",
   "fs-extra",
   "pdf-lib",
   "pdf-parse",
@@ -20,12 +18,10 @@ const includePackages = [
   "text-from-image"
 ];
 
-// Everything else (like Obsidian, Node built-ins, etc.) stays external
 const external = [
   "obsidian",
   "electron",
   ...builtins,
-  // Keep CodeMirror external
   "@codemirror/autocomplete",
   "@codemirror/collab",
   "@codemirror/commands",
@@ -46,6 +42,7 @@ const context = await esbuild.context({
   entryPoints: ["main.ts"],
   bundle: true,
   external,
+  platform: "browser",
   format: "cjs",
   target: "es2018",
   logLevel: "info",

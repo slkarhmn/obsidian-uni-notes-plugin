@@ -7,5 +7,8 @@
 	"author": "slkarhman",
 	"authorUrl": "https://github.com/slkarhmn",
 	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": true
+	"isDesktopOnly": true,
+	"assets": [
+		"assets/pdf.worker.js"
+	]
 }
