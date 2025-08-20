@@ -42,7 +42,7 @@ export default class UniNotes extends Plugin {
 			console.log("Set GlobalWorkerOptions.workerSrc to:", workerPath);
 
 		await this.loadSettings();
-		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'PDF Breakdown', async (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'Uni Notes', async (evt: MouseEvent) => {
 
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName]) => {
@@ -78,7 +78,8 @@ export default class UniNotes extends Plugin {
 				  images.forEach(imagePath => console.log(imagePath));
 
 				  //let testFolder = 'images'
-				  const text: string = await createMarkdownFromImages(newDirName); //TODO: add a check so if the folder already exists, it'll add a number onto the end
+				  const text: string = await createMarkdownFromImages(newDirName); 
+				  //TODO: add a check so if the folder already exists, it'll add a number onto the end
 				  
 				  const newFileName = `${mdFileName}.md`
 				  this.app.vault.create(newFileName, text);
