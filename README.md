@@ -2,6 +2,8 @@
 
 **Uni Notes** allows users to extract images and text from a `.pdf` file and link them together in a `.md` file. 
 
+![ReadMe Demo](readme-assets/demo.gif)
+
 Supported Input file types:
 - `.pdf`
 - `.pptx` - **IN PROGRESS**
