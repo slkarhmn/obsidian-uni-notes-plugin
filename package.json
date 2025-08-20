@@ -2,7 +2,7 @@
 	"name": "obsidian-uni-notes-plugin",
 	"version": "1.0.0",
 	"description": "An Obsidian Plugin to turn a PDF into a markdown note, complete with extracted text. ",
-	"main": "dist/main.js",
+	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
