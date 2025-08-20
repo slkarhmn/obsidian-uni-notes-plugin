@@ -2,13 +2,13 @@
 
 **Uni Notes** allows users to extract images and text from a `.pdf` file and link them together in a `.md` file. 
 
+![ReadMe Demo](readme-assets/demo.gif)
+
 Supported Input file types:
 - `.pdf`
-- `.pptx` - **IN PROGRESS**
 
 Supported output file types:
-- image files: `.png`, `.jpeg`, `.jpg`
-
+-  `.png`
 ### Installation
 **Uni Notes** is available from the Obsidian Community Plugins repository, or can be cloned from this repo directly into the `.obsidian/plugins` folder inside your vault.
 
