@@ -10,7 +10,7 @@ Supported Input file types:
 Supported output file types:
 -  `.png`
 ### Installation
-**Uni Notes** is available from the Obsidian Community Plugins repository, or can be cloned from this repo directly into the `.obsidian/plugins` folder inside your vault.
+**Uni Notes** can be cloned from this repo directly into the `.obsidian/plugins` folder inside your vault. (Or will be available from the Obsidian Community Plugins repository soon).
 
 ##  ⚠️ WORK IN PROGRESS ⚠️
 -  This plugin is currently **desktop only**
