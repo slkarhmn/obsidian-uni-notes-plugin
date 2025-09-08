@@ -4,11 +4,13 @@ import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import { normalizePath } from "obsidian";
 
 interface Settings {
-	mySetting: string;
+	imageOutput: string;
+	mdOutput: string;
 }
 
 const DEFAULT_SETTINGS: Settings = {
-	mySetting: 'default'
+	imageOutput: '/',
+	mdOutput: '/'
 }
 
 export type TextExtractorApi = {
@@ -70,6 +72,9 @@ export default class UniNotes extends Plugin {
 				  } 
 */
 				  let newDirName = `${imagesDir}-output-${Date.now()}`; //keep it unique
+				  if(this.settings.imageOutput != '/'){
+					newDirName = `${this.settings.imageOutput}/${imagesDir}-${Date.now()}`
+				  }
 			
 				  await this.app.vault.createFolder(newDirName);
 
@@ -79,7 +84,18 @@ export default class UniNotes extends Plugin {
 				  //let testFolder = 'images'
 				  const text: string = await createMarkdownFromImages(newDirName); 
 				  
-				  const newFileName = `${mdFileName}.md`
+				  var newFileName;
+
+				  if(this.settings.mdOutput != '/' && markdownPath == ''){ // if default isnt blank, and the popup is blank, then save it to the default directory
+					newFileName = `${this.settings.mdOutput}/${mdFileName}.md`
+				  }
+				  else if(markdownPath != ''){ // popup directory takes precedence, so if the markdownPath isnt blank, then save it to that location
+					newFileName = `${markdownPath}/${mdFileName}.md`
+				  }
+				  else{ //otherwise, root folder
+					newFileName = `${mdFileName}.md`
+				  }
+
 				  this.app.vault.create(newFileName, text);
 
 			  }
@@ -153,7 +169,7 @@ export class PathsPopup extends Modal {
 	  let markdownFilePath = '';
 	  new Setting(this.contentEl)
 		.setName('Markdown Output Path')
-		.setDesc('You can change the default output folder in the settings for this plugin')
+		.setDesc('Use this if you want the file to be saved in a different location from the default.')
 		.addText((text) =>
 		  text.onChange((value) => {
 			markdownFilePath = value;
@@ -278,24 +294,24 @@ class SettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Default Image Output Directory')
-			.setDesc('Select where images should be output by default, when no path is entered in the pop up.')
+			.setName('Images Output Location')
+			.setDesc('Select where image folders should be created by default. If left blank, folders will be created in the root directory.')
 			.addText(text => text
 				.setPlaceholder('Enter a valid path')
-				.setValue(this.plugin.settings.mySetting)
+				.setValue(this.plugin.settings.imageOutput)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.imageOutput = value;
 					await this.plugin.saveSettings();
 				}));
 
 		new Setting(containerEl)
 			.setName('Default Markdown Output Location')
-			.setDesc('Select where markdown files should be output by default, when no path is entered in the pop up.')
+			.setDesc('Select where markdown files should be output by default. If left blank, files will be created in the root directory.')
 			.addText(text => text
 				.setPlaceholder('Enter a valid path')
-				.setValue(this.plugin.settings.mySetting)
+				.setValue(this.plugin.settings.mdOutput)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.mdOutput = value;
 					await this.plugin.saveSettings();
 				}));
 	}
