@@ -1,7 +1,5 @@
 import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile } from 'obsidian';
 import path from 'path';
-import { PDFDocument } from 'pdf-lib';
-import { fromPath } from 'pdf2pic';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import { normalizePath } from "obsidian";
 
@@ -42,6 +40,7 @@ export default class UniNotes extends Plugin {
 			console.log("Set GlobalWorkerOptions.workerSrc to:", workerPath);
 
 		await this.loadSettings();
+
 		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'Uni Notes', async (evt: MouseEvent) => {
 
 			const popup = new PathsPopup(this.app);
@@ -70,7 +69,7 @@ export default class UniNotes extends Plugin {
 					console.log("oh no")
 				  } 
 */
-				  let newDirName = `${imagesDir}-output`; 
+				  let newDirName = `${imagesDir}-output-${Date.now()}`; //keep it unique
 			
 				  await this.app.vault.createFolder(newDirName);
 
@@ -79,21 +78,17 @@ export default class UniNotes extends Plugin {
 
 				  //let testFolder = 'images'
 				  const text: string = await createMarkdownFromImages(newDirName); 
-				  //TODO: add a check so if the folder already exists, it'll add a number onto the end
 				  
 				  const newFileName = `${mdFileName}.md`
 				  this.app.vault.create(newFileName, text);
+
 			  }
 			  
 			});
-			//TODO: add a notice to show the conversion is finished
 		});
 
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-
-		//TODO: make a command to add the images and text to the currently open note
 		
 /* 		this.addCommand({
 			id: 'paths-popup',
@@ -121,8 +116,6 @@ export default class UniNotes extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
-
-//TODO: Make the files searchable to find files from vault inside the pop up
 
 export class PathsPopup extends Modal {
 	private resolve: ((value: [string, string, string]) => void) | null = null;
@@ -231,6 +224,7 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		}
 	  
 		console.log(`All pages rendered and saved.`);
+		new Notice("PDF Successfully Converted to Images!")
 		return outputPaths;
 	  }
 	  
@@ -259,12 +253,14 @@ async function createMarkdownFromImages(folderPath: string) {
 		} else {
 			textTwo = "Text Extraction Failed"
 			console.log("Text Extraction Failed");
+			new Notice("Text Extraction Failed!");
 		}
 	
-		imagePaths.push(`![[${file.name}]]` + '\n' + textTwo + '\n');
+		imagePaths.push(`![[${folderPath}/${file.name}]]` + '\n' + textTwo + '\n');
 	}
 
 	console.log("Generated image markdown:", imagePaths);
+	new Notice("Markdown File Successfully created from Images!")
 	return imagePaths.join("\n");
 }
 
