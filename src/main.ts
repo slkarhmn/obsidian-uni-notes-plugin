@@ -43,7 +43,7 @@ export default class UniNotes extends Plugin {
 
 		await this.loadSettings();
 
-		const ribbonIconEl = this.addRibbonIcon('notepad-text-dashed', 'Uni Notes', async (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('notebook-pen', 'Uni Notes', async (evt: MouseEvent) => {
 
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName]) => {
@@ -105,6 +105,19 @@ export default class UniNotes extends Plugin {
 
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
+
+		this.registerEvent(
+			this.app.workspace.on('file-menu', (menu, file) => {
+			  menu.addItem((item) => {
+				item
+				  .setTitle('Convert to Markdown')
+				  .setIcon('arrow-right-left')
+				  .onClick(async () => {
+					defaultValueConversion(file.path)
+				  });
+			  });
+			})
+		  );
 		
 /* 		this.addCommand({
 			id: 'paths-popup',
@@ -196,6 +209,12 @@ export class PathsPopup extends Modal {
 	}
   }
 
+  async function defaultValueConversion(filePath: string){
+	await convertPDFToImages(filePath, this.settings.imageOutput);
+	await createMarkdownFromImages(this.settings.mdOutput);
+
+	new Notice("Conversion Complete!")
+  }
 
 async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300): Promise<string[]> {
 		const adapter = this.app.vault.adapter;
@@ -209,11 +228,13 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		const pdf = await loadingTask.promise;
 	  
 		console.log(`PDF loaded, total pages: ${pdf.numPages}`);
+		new Notice(`PDF loaded, total pages: ${pdf.numPages}`);
 	  
 		const scale = dpi / 96;
 	  
 		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
 		  console.log(`Rendering page ${pageNumber}...`);
+		  new Notice(`Rendering page ${pageNumber}/${pdf.numPages}`)
 		  const page = await pdf.getPage(pageNumber);
 		  const viewport = page.getViewport({ scale });
 	  
@@ -233,7 +254,8 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		  const binary = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 	  
 		  const pageImagePath = normalizePath(`${outputDir}/page-${pageNumber}.png`);
-		  console.log(`Saving page ${pageNumber} image to: ${pageImagePath}`);
+		  console.log(`Saving page ${pageNumber}/${pdf.numPages} to: ${pageImagePath}`);
+		  new Notice(`Saving page ${pageNumber}/${pdf.numPages} to: ${pageImagePath}`)
 		  await adapter.writeBinary(pageImagePath, binary);
 	  
 		  outputPaths.push(pageImagePath);
@@ -260,6 +282,7 @@ async function createMarkdownFromImages(folderPath: string) {
 		console.log(file.name)
 		const chosenFile = this.app.vault.getFileByPath(file.path);
 		console.log(chosenFile);
+		new Notice(`Extracting text from ${chosenFile}`)
 
 		var textTwo;
 		
@@ -276,7 +299,8 @@ async function createMarkdownFromImages(folderPath: string) {
 	}
 
 	console.log("Generated image markdown:", imagePaths);
-	new Notice("Markdown File Successfully created from Images!")
+	new Notice("Markdown file successfully created from images!")
+	console.log("Markdown file successfully created from images!")
 	return imagePaths.join("\n");
 }
 
