@@ -72,7 +72,7 @@ export default class UniNotes extends Plugin {
 				  } 
 */
 				  let newDirName = `${imagesDir}-output-${Date.now()}`; //keep it unique
-				  if(this.settings.imageOutput != '/'){
+				  if(this.settings.imageOutput != '/' && this.settings.imageOutput != ''){
 					newDirName = `${this.settings.imageOutput}/${imagesDir}-${Date.now()}`
 				  }
 			
@@ -86,7 +86,7 @@ export default class UniNotes extends Plugin {
 				  
 				  var newFileName;
 
-				  if(this.settings.mdOutput != '/' && markdownPath == ''){ // if default isnt blank, and the popup is blank, then save it to the default directory
+				  if(this.settings.mdOutput != '/' && this.settings.mdOutput != '' && markdownPath == ''){ // if default isnt blank, and the popup is blank, then save it to the default directory
 					newFileName = `${this.settings.mdOutput}/${mdFileName}.md`
 				  }
 				  else if(markdownPath != ''){ // popup directory takes precedence, so if the markdownPath isnt blank, then save it to that location
