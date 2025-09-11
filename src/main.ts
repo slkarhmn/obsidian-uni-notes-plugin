@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile, SearchComponent } from 'obsidian';
 import path from 'path';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import { normalizePath } from "obsidian";
@@ -46,7 +46,7 @@ export default class UniNotes extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('notebook-pen', 'Uni Notes', async (evt: MouseEvent) => {
 
 			const popup = new PathsPopup(this.app);
-			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName]) => {
+			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName, tags]) => {
 			  console.log('PDF Path:', pdfPath);
 			  console.log('Markdown File Name:', mdFileName);
 			  console.log('Markdown Path:', markdownPath);
@@ -82,7 +82,7 @@ export default class UniNotes extends Plugin {
 				  images.forEach(imagePath => console.log(imagePath));
 
 				  //let testFolder = 'images'
-				  const text: string = await createMarkdownFromImages(newDirName); 
+				  const text: string = await createMarkdownFromImages(newDirName, tags); 
 				  
 				  var newFileName;
 
@@ -106,7 +106,7 @@ export default class UniNotes extends Plugin {
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		this.registerEvent(
+/* 		this.registerEvent(
 			this.app.workspace.on('file-menu', (menu, file) => {
 			  menu.addItem((item) => {
 				item
@@ -117,7 +117,7 @@ export default class UniNotes extends Plugin {
 				  });
 			  });
 			})
-		  );
+		  ); */
 		
 /* 		this.addCommand({
 			id: 'paths-popup',
@@ -147,19 +147,44 @@ export default class UniNotes extends Plugin {
 }
 
 export class PathsPopup extends Modal {
-	private resolve: ((value: [string, string, string]) => void) | null = null;
-  
+	private resolve: ((value: [string, string, string, string]) => void) | null = null;
+
 	constructor(app: App) {
 	  super(app);
 	  this.setTitle('Uni Notes PDF to Markdown');
   
 	  let pdfPath = '';
 	  new Setting(this.contentEl)
-		.setName('PDF Path')
-		.addText((text) =>
-		  text.onChange((value) => {
-			pdfPath = value;
-		  }));
+	  .setName('PDF Path')
+	  .addSearch((search) => {
+		  search
+			  .setPlaceholder('Search and select a PDF...')
+			  .onChange((value) => {
+				  const pdfFiles = app.vault.getFiles().filter(file =>
+					  file.extension === 'pdf' &&
+					  file.name.toLowerCase().includes(value.toLowerCase())
+				  );
+
+				  const datalistId = 'pdf-search-datalist';
+				  let datalist = this.containerEl.querySelector(`#${datalistId}`) as HTMLDataListElement;
+				  if (!datalist) {
+					  datalist = document.createElement('datalist');
+					  datalist.id = datalistId;
+					  this.containerEl.appendChild(datalist);
+					  search.inputEl.setAttribute('list', datalistId);
+				  }
+				  datalist.innerHTML = '';
+
+				  for (const file of pdfFiles) {
+					  const option = document.createElement('option');
+					  option.value = file.path;
+					  datalist.appendChild(option);
+				  }
+			  });
+		  search.inputEl.addEventListener('blur', () => {
+			  pdfPath = search.getValue();
+		  });
+	  });
   
 /* 	  let imagesDirectory = '';
 	  new Setting(this.contentEl)
@@ -173,20 +198,29 @@ export class PathsPopup extends Modal {
 		let mdFileName = '';
 		new Setting(this.contentEl)
 			.setName('Markdown File Name')
-			.setDesc('Enter the name of the new Markdown File')
+			.setDesc('Enter a name for the new Markdown File')
 			.addText((text) =>
 			  text.onChange((value) => {
 				mdFileName = value;
 			  }));
-  
-	  let markdownFilePath = '';
-	  new Setting(this.contentEl)
-		.setName('Markdown Output Path')
-		.setDesc('Use this if you want the file to be saved in a different location from the default.')
-		.addText((text) =>
-		  text.onChange((value) => {
-			markdownFilePath = value;
-		  }));
+
+			  let tags = '';
+			  new Setting(this.contentEl)
+				  .setName('Tags')
+				  .setDesc('Enter tags for the new markdown file, separated by a comma and a space, e.g. english, literature, homework')
+				  .addText((text) =>
+					text.onChange((value) => {
+					  tags = value;
+					}));
+
+	let markdownFilePath = '';
+	new Setting(this.contentEl)
+	  .setName('Markdown Output Path')
+	  .setDesc('Use this if you want the file to be saved in a different location from the default.')
+	  .addText((text) =>
+		text.onChange((value) => {
+		  markdownFilePath = value;
+		}));
   
 	  new Setting(this.contentEl)
 		.addButton((btn) =>
@@ -196,12 +230,13 @@ export class PathsPopup extends Modal {
 			.onClick(() => {
 			  this.close();
 			  if (this.resolve) {
-				this.resolve([pdfPath, markdownFilePath, mdFileName]);
+				this.resolve([pdfPath, markdownFilePath, mdFileName, tags]);
 			  }
 			}));
 	}
+	
   
-	openAndGetPaths(): Promise<[string, string, string]> {
+	openAndGetPaths(): Promise<[string, string, string, string]> {
 	  this.open();
 	  return new Promise((resolve) => {
 		this.resolve = resolve;
@@ -209,12 +244,12 @@ export class PathsPopup extends Modal {
 	}
   }
 
-  async function defaultValueConversion(filePath: string){
+/*   async function defaultValueConversion(filePath: string){
 	await convertPDFToImages(filePath, this.settings.imageOutput);
-	await createMarkdownFromImages(this.settings.mdOutput);
+	await createMarkdownFromImages(this.settings.mdOutput,);
 
 	new Notice("Conversion Complete!")
-  }
+  } */
 
 async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300): Promise<string[]> {
 		const adapter = this.app.vault.adapter;
@@ -267,8 +302,13 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 	  }
 	  
 
-async function createMarkdownFromImages(folderPath: string) {
-	const imagePaths: string[] = [];
+async function createMarkdownFromImages(folderPath: string, tags: string) {
+	const tagsThenimagePaths: string[] = [];
+	const yamlTags = tags.split(/\s*,\s*/);
+
+	const yaml = `---\ntags:\n${yamlTags.map(yamlTags => `  - ${yamlTags}`).join('\n')}\n---`;
+
+	tagsThenimagePaths.push(yaml)
 
 	const files: TFile[] = this.app.vault.getFiles()
 		.filter((file: TFile) =>
@@ -295,13 +335,13 @@ async function createMarkdownFromImages(folderPath: string) {
 			new Notice("Text Extraction Failed!");
 		}
 	
-		imagePaths.push(`![[${folderPath}/${file.name}]]` + '\n' + textTwo + '\n');
+		tagsThenimagePaths.push(`![[${folderPath}/${file.name}]]` + '\n' + textTwo + '\n');
 	}
 
-	console.log("Generated image markdown:", imagePaths);
+	console.log("Generated image markdown:", tagsThenimagePaths);
 	new Notice("Markdown file successfully created from images!")
 	console.log("Markdown file successfully created from images!")
-	return imagePaths.join("\n");
+	return tagsThenimagePaths.join("\n");
 }
 
 class SettingsTab extends PluginSettingTab {
