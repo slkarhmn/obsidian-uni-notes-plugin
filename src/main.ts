@@ -27,7 +27,11 @@ export default class UniNotes extends Plugin {
 	settings: Settings;
 
 	async onload() {
-		const workerPath = this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/pdf.worker.js`);
+		await this.loadSettings();
+
+		const ribbonIconEl = this.addRibbonIcon('notebook-pen', 'Uni Notes', async (evt: MouseEvent) => {
+			
+			const workerPath = this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/pdf.worker.js`);
 			try {
 			const res = await fetch(workerPath);
 			if (!res.ok) {
@@ -37,10 +41,6 @@ export default class UniNotes extends Plugin {
 			console.error("Could not fetch pdf.worker.js at", workerPath, e);
 			}
 			GlobalWorkerOptions.workerSrc = workerPath;
-
-		await this.loadSettings();
-
-		const ribbonIconEl = this.addRibbonIcon('notebook-pen', 'Uni Notes', async (evt: MouseEvent) => {
 
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName, tags]) => {
