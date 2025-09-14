@@ -55,6 +55,7 @@ export default class UniNotes extends Plugin {
 				 
 				 let imagesDir = pdfPath.split('/').pop()?.replace('.pdf', '') || 'output';
 
+
 /* 				  if (fullPdfFile != null){
 					convertPdfToImagesInVault(this.app, fullPdfFile, fullOutputPath, 300);
 					convertPdfToImagesInNode(fullPDFPath, fullOutputPath, 300);
