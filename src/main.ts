@@ -78,7 +78,7 @@ export default class UniNotes extends Plugin {
 				  //let testFolder = 'images'
 				  const text: string = await createMarkdownFromImages(newDirName, tags); 
 				  
-				  var newFileName;
+				  let newFileName;
 
 				  if(this.settings.mdOutput != '/' && this.settings.mdOutput != '' && markdownPath == ''){ // if default isnt blank, and the popup is blank, then save it to the default directory
 					newFileName = `${this.settings.mdOutput}/${mdFileName}.md`
@@ -148,37 +148,44 @@ export class PathsPopup extends Modal {
 	  this.setTitle('Uni Notes PDF to Markdown');
   
 	  let pdfPath = '';
+
 	  new Setting(this.contentEl)
-	  .setName('PDF path')
-	  .addSearch((search) => {
+		.setName('PDF path')
+		.addSearch((search) => {
 		  search
-			  .setPlaceholder('Search and select a PDF...')
-			  .onChange((value) => {
-				  const pdfFiles = app.vault.getFiles().filter(file =>
-					  file.extension === 'pdf' &&
-					  file.name.toLowerCase().includes(value.toLowerCase())
-				  );
-
-				  const datalistId = 'pdf-search-datalist';
-				  let datalist = this.containerEl.querySelector(`#${datalistId}`) as HTMLDataListElement;
-				  if (!datalist) {
-					  datalist = document.createElement('datalist');
-					  datalist.id = datalistId;
-					  this.containerEl.appendChild(datalist);
-					  search.inputEl.setAttribute('list', datalistId);
-				  }
-				  datalist.innerHTML = '';
-
-				  for (const file of pdfFiles) {
-					  const option = document.createElement('option');
-					  option.value = file.path;
-					  datalist.appendChild(option);
-				  }
-			  });
+			.setPlaceholder('Search and select a PDF...')
+			.onChange((value) => {
+			  const pdfFiles = app.vault.getFiles().filter(file =>
+				file.extension === 'pdf' &&
+				file.name.toLowerCase().includes(value.toLowerCase())
+			  );
+	  
+			  const datalistId = 'pdf-search-datalist';
+			  let datalist = this.containerEl.querySelector(`#${datalistId}`) as HTMLDataListElement;
+	  
+			  if (!datalist) {
+				datalist = document.createElement('datalist');
+				datalist.id = datalistId;
+				this.containerEl.appendChild(datalist);
+				search.inputEl.setAttribute('list', datalistId);
+			  }
+	  
+			  // Clear the datalist safely
+			  while (datalist.firstChild) {
+				datalist.removeChild(datalist.firstChild);
+			  }
+	  
+			  for (const file of pdfFiles) {
+				const option = document.createElement('option');
+				option.value = file.path;
+				datalist.appendChild(option);
+			  }
+			});
+	  
 		  search.inputEl.addEventListener('blur', () => {
-			  pdfPath = search.getValue();
+			pdfPath = search.getValue();
 		  });
-	  });
+		});	  
   
 /* 	  let imagesDirectory = '';
 	  new Setting(this.contentEl)
@@ -312,7 +319,7 @@ async function createMarkdownFromImages(folderPath: string, tags: string) {
 		const chosenFile = this.app.vault.getFileByPath(file.path);
 		new Notice(`Extracting text from ${chosenFile}`)
 
-		var textTwo;
+		let textTwo;
 		
 		if (chosenFile) {
 			textTwo = await getTextExtractor()?.extractText(chosenFile);
