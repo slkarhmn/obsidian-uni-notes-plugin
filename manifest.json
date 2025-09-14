@@ -1,7 +1,7 @@
 {
 	"id": "uni-notes",
 	"name": "Uni Notes",
-	"version": "1.1.6",
+	"version": "1.1.7",
 	"minAppVersion": "1.4.16",
 	"description": "Turn a PDF into a Markdown note, complete with extracted text.",
 	"author": "Salika Rahman",
