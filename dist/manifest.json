@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-uni-notes-plugin",
 	"name": "Uni Notes",
-	"version": "0.0.2",
+	"version": "1.0.0",
 	"minAppVersion": "1.4.16",
 	"description": "Turn a PDF into a Markdown note, complete with extracted text.",
 	"author": "slkarhmn",
