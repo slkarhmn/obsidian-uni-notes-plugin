@@ -27,7 +27,7 @@ export default class UniNotes extends Plugin {
 	settings: Settings;
 
 	async onload() {
-		const workerPath = this.app.vault.adapter.getResourcePath(`${this.manifest.dir}pdf.worker.js`);
+		const workerPath = this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/pdf.worker.js`);
 			try {
 			const res = await fetch(workerPath);
 			if (!res.ok) {

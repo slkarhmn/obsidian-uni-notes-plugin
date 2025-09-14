@@ -7,8 +7,5 @@
 	"author": "Salika Rahman",
 	"authorUrl": "https://github.com/slkarhmn",
 	"fundingUrl": "https://ko-fi.com/slkarhmn",
-	"isDesktopOnly": true,
-	"assets": [
-		"pdf.worker.js"
-	]
+	"isDesktopOnly": true
 }
