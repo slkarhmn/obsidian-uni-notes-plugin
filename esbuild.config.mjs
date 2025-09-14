@@ -53,11 +53,6 @@ const context = await esbuild.context({
   minify: prod,
 });
 
-if (!fs.existsSync("dist")) {
-  fs.mkdirSync("dist");
-}
-fs.copyFileSync("manifest.json", "dist/manifest.json");
-
 
 if (prod) {
   await context.rebuild();

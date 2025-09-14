@@ -1,5 +1,4 @@
 import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, TFile, SearchComponent } from 'obsidian';
-import path from 'path';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import { normalizePath } from "obsidian";
 
@@ -54,7 +53,7 @@ export default class UniNotes extends Plugin {
 				  //let fullPDFPath = adapter.getFullPath(pdfPath);
 				 let fullPdfFile = this.app.vault.getFileByPath(pdfPath); //this is a TFile it has the file itself
 				 
-				 let imagesDir = path.parse(path.basename(pdfPath)).name;
+				 let imagesDir = pdfPath.split('/').pop()?.replace('.pdf', '') || 'output';
 
 /* 				  if (fullPdfFile != null){
 					convertPdfToImagesInVault(this.app, fullPdfFile, fullOutputPath, 300);
