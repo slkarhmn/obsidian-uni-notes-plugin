@@ -37,18 +37,17 @@ const external = [
   "@lezer/lr",
 ].filter(pkg => !includePackages.includes(pkg));
 
-// Paths
 const distDir = path.resolve("dist"); 
-const assetsDir = path.join(distDir, "assets");
+const workerFile = path.join(distDir, "");
 const manifestSrc = path.resolve("manifest.json");
 
 const copyPdfWorker = async () => {
   const src = path.resolve("node_modules/pdfjs-dist/build/pdf.worker.mjs");
-  const dest = path.join(assetsDir, "pdf.worker.js");
+  const dest = path.join(workerFile, "pdf.worker.js");
 
-  await fs.mkdir(assetsDir, { recursive: true });
+  await fs.mkdir(workerFile, { recursive: true });
   await fs.copyFile(src, dest);
-  console.log(`Copied pdf.worker.mjs → dist/assets/pdf.worker.js`);
+  console.log(`Copied pdf.worker.mjs → dist/pdf.worker.js`);
 };
 
 const copyManifest = async () => {

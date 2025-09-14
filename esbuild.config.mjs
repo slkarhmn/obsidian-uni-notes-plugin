@@ -39,12 +39,12 @@ const external = [
 
 const copyPdfWorker = async () => {
   const src = path.resolve("node_modules/pdfjs-dist/build/pdf.worker.mjs");
-  const destDir = path.resolve("assets");
+  const destDir = path.resolve("");
   const dest = path.resolve(destDir, "pdf.worker.js");
 
   await fs.mkdir(destDir, { recursive: true });
   await fs.copyFile(src, dest);
-  console.log(`Copied and renamed pdf.worker.mjs to assets/pdf.worker.js`);
+  console.log(`Copied and renamed pdf.worker.mjs to pdf.worker.js`);
 };
 
 const context = await esbuild.context({
