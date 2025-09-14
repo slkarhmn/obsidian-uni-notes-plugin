@@ -2,7 +2,7 @@
 
 **Uni Notes** allows users to extract images and text from a `.pdf` file and link them together in a `.md` file. Users can customise tags, select output directories, and set default behaviour in the settings.
 
-![ReadMe Demo](readme-assets/demo.mp4)
+![ReadMe Demo](readme-assets/demo-720p.mp4)
 
 Supported input file types:
 - `.pdf`
