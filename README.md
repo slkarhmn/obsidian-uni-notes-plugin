@@ -4,7 +4,7 @@
 
 ![ReadMe Demo](readme-assets/demo.mp4)
 
-Supported Input file types:
+Supported input file types:
 - `.pdf`
 
 Supported output file types:
