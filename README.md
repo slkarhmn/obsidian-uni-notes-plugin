@@ -11,7 +11,13 @@ Supported output file types:
 -  `.png`
 
 ### Installation
-**Uni Notes** can be cloned from this repo directly into the `.obsidian/plugins` folder inside your vault. (Or will be available from the Obsidian Community Plugins repository soon).
+Uni Notes is not yet available from Obsidian Community Plugins, so there is one method to download it:
+1. Inside your vault, go to `.obsidian` folder
+2. Create a folder names `uni-notes`
+3. Download the `main.js`, `manifest.json` and `pdf.worker.js` into the `uni-notes` folder
+4. Activate the plugin in your settings like any other settings.
+
+Please feel free to leave feedback and bug reports :)
 
 ##  ⚠️ WORK IN PROGRESS ⚠️
 -  This plugin is  **desktop only**
