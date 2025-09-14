@@ -149,7 +149,7 @@ export class PathsPopup extends Modal {
   
 	  let pdfPath = '';
 	  new Setting(this.contentEl)
-	  .setName('PDF Path')
+	  .setName('PDF path')
 	  .addSearch((search) => {
 		  search
 			  .setPlaceholder('Search and select a PDF...')
@@ -191,7 +191,7 @@ export class PathsPopup extends Modal {
 
 		let mdFileName = '';
 		new Setting(this.contentEl)
-			.setName('Markdown File Name')
+			.setName('Markdown file name')
 			.setDesc('Enter a name for the new Markdown File')
 			.addText((text) =>
 			  text.onChange((value) => {
@@ -209,7 +209,7 @@ export class PathsPopup extends Modal {
 
 	let markdownFilePath = '';
 	new Setting(this.contentEl)
-	  .setName('Markdown Output Path')
+	  .setName('Markdown output path')
 	  .setDesc('Use this if you want the file to be saved in a different location from the default.')
 	  .addText((text) =>
 		text.onChange((value) => {
@@ -287,7 +287,7 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		  outputPaths.push(pageImagePath);
 		}
 	  
-		new Notice("PDF Successfully Converted to Images!")
+		new Notice("PDF successfully converted to images!")
 		return outputPaths;
 	  }
 	  
@@ -317,8 +317,8 @@ async function createMarkdownFromImages(folderPath: string, tags: string) {
 		if (chosenFile) {
 			textTwo = await getTextExtractor()?.extractText(chosenFile);
 		} else {
-			textTwo = "Text Extraction Failed"
-			new Notice("Text Extraction Failed!");
+			textTwo = "Text extraction failed"
+			new Notice("Text extraction failed!");
 		}
 	
 		tagsThenimagePaths.push(`![[${folderPath}/${file.name}]]` + '\n' + textTwo + '\n');
@@ -342,7 +342,7 @@ class SettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Images Output Location')
+			.setName('Images output location')
 			.setDesc('Select where image folders should be created by default. If left blank, folders will be created in the root directory.')
 			.addText(text => text
 				.setPlaceholder('Enter a valid path')
@@ -353,7 +353,7 @@ class SettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Default Markdown Output Location')
+			.setName('Default markdown output location')
 			.setDesc('Select where markdown files should be output by default. If left blank, files will be created in the root directory.')
 			.addText(text => text
 				.setPlaceholder('Enter a valid path')
