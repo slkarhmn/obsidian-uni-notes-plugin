@@ -42,9 +42,7 @@ const copyPdfWorker = async () => {
   const destDir = path.resolve("assets");
   const dest = path.resolve(destDir, "pdf.worker.js");
 
-  // Ensure assets directory exists
   await fs.mkdir(destDir, { recursive: true });
-  // Copy and rename file
   await fs.copyFile(src, dest);
   console.log(`Copied and renamed pdf.worker.mjs to assets/pdf.worker.js`);
 };
@@ -68,10 +66,9 @@ const context = await esbuild.context({
 
 if (prod) {
   await context.rebuild();
-  await copyPdfWorker();  // Copy after build
+  await copyPdfWorker(); 
   process.exit(0);
 } else {
   await context.watch();
-  // Optionally copy at start or watch for changes if needed
   await copyPdfWorker();
 }
