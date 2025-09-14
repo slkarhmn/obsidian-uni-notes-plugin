@@ -57,7 +57,7 @@ const copyPdfWorker = async () => {
 
   await fs.mkdir(outputDir, { recursive: true });
   await fs.copyFile(src, dest);
-  console.log(`Copied pdf.worker.mjs → ${path.relative(process.cwd(), dest)}`);
+  console.log(`Copied pdf.worker.mjs to ${path.relative(process.cwd(), dest)}`);
 };
 
 const copyManifest = async () => {
@@ -72,7 +72,7 @@ const copyManifest = async () => {
 
   const dest = path.join(distDir, "manifest.json");
   await fs.copyFile(manifestSrc, dest);
-  console.log(`Copied manifest.json → dist/manifest.json`);
+  console.log(`Copied manifest.json to dist/manifest.json`);
 };
 
 const build = async () => {
