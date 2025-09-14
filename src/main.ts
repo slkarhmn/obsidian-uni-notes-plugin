@@ -34,12 +34,10 @@ export default class UniNotes extends Plugin {
 			if (!res.ok) {
 				throw new Error(`Worker fetch failed: ${res.statusText}`);
 			}
-			console.log("PDF.js worker script is accessible at:", workerPath);
 			} catch (e) {
 			console.error("Could not fetch pdf.worker.js at", workerPath, e);
 			}
 			GlobalWorkerOptions.workerSrc = workerPath;
-			console.log("Set GlobalWorkerOptions.workerSrc to:", workerPath);
 
 		await this.loadSettings();
 
@@ -47,15 +45,11 @@ export default class UniNotes extends Plugin {
 
 			const popup = new PathsPopup(this.app);
 			popup.openAndGetPaths().then(async ([pdfPath, markdownPath, mdFileName, tags]) => {
-			  console.log('PDF Path:', pdfPath);
-			  console.log('Markdown File Name:', mdFileName);
-			  console.log('Markdown Path:', markdownPath);
 			  
 			  const adapter = this.app.vault.adapter;
 
 			  if (adapter instanceof FileSystemAdapter) {
 				  const vaultRoot = adapter.getBasePath();
-				  console.log("Vault is stored at:", vaultRoot);
 
 				  //let fullPDFPath = adapter.getFullPath(pdfPath);
 				 let fullPdfFile = this.app.vault.getFileByPath(pdfPath); //this is a TFile it has the file itself
@@ -79,7 +73,7 @@ export default class UniNotes extends Plugin {
 				  await this.app.vault.createFolder(newDirName);
 
 				  const images = await convertPDFToImages(pdfPath, newDirName);
-				  images.forEach(imagePath => console.log(imagePath));
+				  images.forEach(imagePath => new Notice(imagePath));
 
 				  //let testFolder = 'images'
 				  const text: string = await createMarkdownFromImages(newDirName, tags); 
@@ -255,20 +249,18 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		const adapter = this.app.vault.adapter;
 		const outputPaths: string[] = [];
 	  
-		console.log(`Reading PDF from: ${pdfPath}`);
+		new Notice(`Reading PDF from: ${pdfPath}`);
 		const pdfData = await adapter.readBinary(normalizePath(pdfPath));
 	  
-		console.log(`Loading PDF document...`);
+		new Notice(`Loading PDF document...`);
 		const loadingTask = getDocument({ data: pdfData });
 		const pdf = await loadingTask.promise;
 	  
-		console.log(`PDF loaded, total pages: ${pdf.numPages}`);
 		new Notice(`PDF loaded, total pages: ${pdf.numPages}`);
 	  
 		const scale = dpi / 96;
 	  
 		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-		  console.log(`Rendering page ${pageNumber}...`);
 		  new Notice(`Rendering page ${pageNumber}/${pdf.numPages}`)
 		  const page = await pdf.getPage(pageNumber);
 		  const viewport = page.getViewport({ scale });
@@ -289,14 +281,12 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300)
 		  const binary = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 	  
 		  const pageImagePath = normalizePath(`${outputDir}/page-${pageNumber}.png`);
-		  console.log(`Saving page ${pageNumber}/${pdf.numPages} to: ${pageImagePath}`);
 		  new Notice(`Saving page ${pageNumber}/${pdf.numPages} to: ${pageImagePath}`)
 		  await adapter.writeBinary(pageImagePath, binary);
 	  
 		  outputPaths.push(pageImagePath);
 		}
 	  
-		console.log(`All pages rendered and saved.`);
 		new Notice("PDF Successfully Converted to Images!")
 		return outputPaths;
 	  }
@@ -319,28 +309,22 @@ async function createMarkdownFromImages(folderPath: string, tags: string) {
 	
 	
 	for (const file of files) {
-		console.log(file.name)
 		const chosenFile = this.app.vault.getFileByPath(file.path);
-		console.log(chosenFile);
 		new Notice(`Extracting text from ${chosenFile}`)
 
 		var textTwo;
 		
 		if (chosenFile) {
 			textTwo = await getTextExtractor()?.extractText(chosenFile);
-			console.log(textTwo);
 		} else {
 			textTwo = "Text Extraction Failed"
-			console.log("Text Extraction Failed");
 			new Notice("Text Extraction Failed!");
 		}
 	
 		tagsThenimagePaths.push(`![[${folderPath}/${file.name}]]` + '\n' + textTwo + '\n');
 	}
 
-	console.log("Generated image markdown:", tagsThenimagePaths);
 	new Notice("Markdown file successfully created from images!")
-	console.log("Markdown file successfully created from images!")
 	return tagsThenimagePaths.join("\n");
 }
 
