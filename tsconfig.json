@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",  
+    "baseUrl": ".", 
     "rootDir": "src",  
     "inlineSourceMap": true,
     "inlineSources": true,
