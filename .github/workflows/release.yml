@@ -32,4 +32,4 @@ jobs:
           gh release create "$tag" \
             --title="$tag" \
             --draft \
-            main.js manifest.json styles.css pdf.worker.js
+            dist/main.js dist/manifest.json dist/styles.css dist/pdf.worker.js
