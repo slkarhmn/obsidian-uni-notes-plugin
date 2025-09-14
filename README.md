@@ -17,7 +17,7 @@ Uni Notes is not yet available from Obsidian Community Plugins, so there is one 
 3. Download the `main.js`, `manifest.json` and `pdf.worker.js` into the `uni-notes` folder
 4. Activate the plugin in your settings like any other settings.
 
-Please feel free to leave feedback and bug reports :)
+Please feel free to leave feedback and bug reports! :)
 
 ##  ⚠️ WORK IN PROGRESS ⚠️
 -  This plugin is  **desktop only**
