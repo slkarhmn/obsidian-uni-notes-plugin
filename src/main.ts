@@ -48,23 +48,10 @@ export default class UniNotes extends Plugin {
 			  const adapter = this.app.vault.adapter;
 
 			  if (adapter instanceof FileSystemAdapter) {
-				  const vaultRoot = adapter.getBasePath();
-
-				  //let fullPDFPath = adapter.getFullPath(pdfPath);
 				 let fullPdfFile = this.app.vault.getFileByPath(pdfPath); //this is a TFile it has the file itself
 				 
 				 let imagesDir = pdfPath.split('/').pop()?.replace('.pdf', '') || 'output';
 
-
-/* 				  if (fullPdfFile != null){
-					convertPdfToImagesInVault(this.app, fullPdfFile, fullOutputPath, 300);
-					convertPdfToImagesInNode(fullPDFPath, fullOutputPath, 300);
-					console.log("PDF to image COMPLETE yaY");
-				  }
-				  else{
-					console.log("oh no")
-				  } 
-*/
 				  let newDirName = `${imagesDir}-output-${Date.now()}`; //keep it unique
 				  if(this.settings.imageOutput != '/' && this.settings.imageOutput != ''){
 					newDirName = `${this.settings.imageOutput}/${imagesDir}-${Date.now()}`
@@ -96,32 +83,6 @@ export default class UniNotes extends Plugin {
 			  
 			});
 		});
-
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-/* 		this.registerEvent(
-			this.app.workspace.on('file-menu', (menu, file) => {
-			  menu.addItem((item) => {
-				item
-				  .setTitle('Convert to Markdown')
-				  .setIcon('arrow-right-left')
-				  .onClick(async () => {
-					defaultValueConversion(file.path)
-				  });
-			  });
-			})
-		  ); */
-		
-/* 		this.addCommand({
-			id: 'paths-popup',
-			name: 'Convert PDF to Markdown with extracted text',
-			callback: () => {
-				new PathsPopup(this.app, (pdfPath, imagesDirectory, markdownFilePath) => {
-					new Notice(`${pdfPath}\n ${imagesDirectory}\n ${markdownFilePath}`);
-				  }).open();
-			},
-		  }); */
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingsTab(this.app, this));
@@ -186,15 +147,6 @@ export class PathsPopup extends Modal {
 			pdfPath = search.getValue();
 		  });
 		});	  
-  
-/* 	  let imagesDirectory = '';
-	  new Setting(this.contentEl)
-		.setName('Images Output Directory Path')
-		.setDesc('You can change this to be the default attachments folder in the settings for this plugin.')
-		.addText((text) =>
-		  text.onChange((value) => {
-			imagesDirectory = value;
-		  })); */
 
 		let mdFileName = '';
 		new Setting(this.contentEl)
@@ -244,13 +196,6 @@ export class PathsPopup extends Modal {
 	  });
 	}
   }
-
-/*   async function defaultValueConversion(filePath: string){
-	await convertPDFToImages(filePath, this.settings.imageOutput);
-	await createMarkdownFromImages(this.settings.mdOutput,);
-
-	new Notice("Conversion Complete!")
-  } */
 
 async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 300): Promise<string[]> {
 		const adapter = this.app.vault.adapter;
