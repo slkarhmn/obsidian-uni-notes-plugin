@@ -1,6 +1,6 @@
 {
 	"name": "uni-notes",
-	"version": "1.1.8",
+	"version": "1.1.9",
 	"description": "Turn a PDF into a Markdown note, complete with extracted text. ",
 	"main": "main.js",
 	"scripts": {
