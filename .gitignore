@@ -34,3 +34,4 @@ files/
 *.traineddata
 
 pdf.worker.js
+.hotreload
