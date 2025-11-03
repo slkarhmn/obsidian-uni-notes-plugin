@@ -22,6 +22,8 @@ export function getTextExtractor(): TextExtractorApi | undefined {
 	return (this.app as any).plugins?.plugins?.['text-extractor']?.api
 }
 
+const logsList: string[] = [];
+const skippedPages: number[] = []; 
 
 export default class UniNotes extends Plugin {
 	settings: Settings;
@@ -38,7 +40,7 @@ export default class UniNotes extends Plugin {
 				throw new Error(`Worker fetch failed: ${res.statusText}`);
 			}
 			} catch (e) {
-			console.error("Could not fetch pdf.worker.js at", workerPath, e);
+			logsList.push("Could not fetch pdf.worker.js at", workerPath, e);
 			}
 			GlobalWorkerOptions.workerSrc = workerPath;
 
@@ -79,11 +81,14 @@ export default class UniNotes extends Plugin {
 					newFileName = `${mdFileName}.md`
 				  }
 
-				  this.app.vault.create(newFileName, text);
-
+				  await this.app.vault.create(newFileName, text);
 			  }
 			  
+			const logsModal = new logsPopup(this.app, logsList);
+			logsModal.open();
+			  
 			});
+
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
@@ -133,7 +138,6 @@ export class PathsPopup extends Modal {
 				search.inputEl.setAttribute('list', datalistId);
 			  }
 	  
-			  // Clear the datalist safely
 			  while (datalist.firstChild) {
 				datalist.removeChild(datalist.firstChild);
 			  }
@@ -210,47 +214,64 @@ export class PathsPopup extends Modal {
 	}
   }
 
-/* export class logsPopup extends Modal{
-	showLogs(logsList: string[]){
 
-		new Setting(this.contentEl)
-		.setName('Logs')
-		.setDesc(logsList.)
+export class logsPopup extends Modal {
+    constructor(app: App, private logsList: string[]) {
+        super(app);
+    }
 
-	}
-  } */
+    onOpen() {
+        const fullLogs = this.logsList.filter(s => s).join('\n');
+        
+        new Setting(this.contentEl)
+            .setName('Logs')
+            .setDesc(fullLogs);
+            
+        new Setting(this.contentEl)
+            .addButton((btn) =>
+                btn
+                    .setButtonText('Close')
+                    .setCta()
+                    .onClick(() => {
+                        this.close();
+                    })
+            );
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+    }
+}
 
 async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 150): Promise<string[]> {
   const adapter = this.app.vault.adapter;
   const outputPaths: string[] = [];
-  const skippedPages: number[] = []; 
 
-  console.log(`[convertPDFToImages] Starting conversion. PDF path: ${pdfPath}, Output dir: ${outputDir}, DPI: ${dpi}`);
-  new Notice(`Reading PDF from: ${pdfPath}`);
+  logsList.push(`[convertPDFToImages] Starting conversion. PDF path: ${pdfPath}, Output dir: ${outputDir}, DPI: ${dpi}`);
 
   try {
     const pdfData = await adapter.readBinary(normalizePath(pdfPath));
-    console.log(`[convertPDFToImages] Successfully read PDF data (${pdfData.byteLength} bytes)`);
+    logsList.push(`[convertPDFToImages] Successfully read PDF data (${pdfData.byteLength} bytes)`);
 
-    new Notice(`Loading PDF document...`);
     const loadingTask = getDocument({ data: pdfData });
     const pdf = await loadingTask.promise;
 
-    console.log(`[convertPDFToImages] PDF loaded. Total pages: ${pdf.numPages}`);
+    logsList.push(`[convertPDFToImages] PDF loaded. Total pages: ${pdf.numPages}`);
     new Notice(`PDF loaded, total pages: ${pdf.numPages}`);
 
     const scale = dpi / 96;
-    console.log(`[convertPDFToImages] Render scale set to: ${scale}`);
+    logsList.push(`[convertPDFToImages] Render scale set to: ${scale}`);
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-      console.log(`[convertPDFToImages] Rendering page ${pageNumber}/${pdf.numPages}`);
+      logsList.push(`[convertPDFToImages] Rendering page ${pageNumber}/${pdf.numPages}`);
       new Notice(`Rendering page ${pageNumber}/${pdf.numPages}`);
 
       let page;
       try {
         page = await pdf.getPage(pageNumber);
       } catch (err) {
-        console.warn(`[convertPDFToImages] Failed to load page ${pageNumber}:`, err);
+        logsList.push(`[convertPDFToImages] Failed to load page ${pageNumber}:`, err);
         new Notice(`Skipping page ${pageNumber} — failed to load.`);
         skippedPages.push(pageNumber);
         continue;
@@ -274,22 +295,22 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 150)
 
       try {
         await Promise.race([renderPromise, timeoutPromise]);
-        console.log(`[convertPDFToImages] Page ${pageNumber} rendered successfully.`);
+        logsList.push(`[convertPDFToImages] Page ${pageNumber} rendered successfully.`);
       } catch (err: any) {
         const errMsg = String(err?.message || err);
         if (errMsg.includes("UnknownErrorException") || errMsg.includes("Cannot transfer object")) {
-          console.warn(`[convertPDFToImages] Skipping page ${pageNumber} due to render error: ${errMsg}`);
+          logsList.push(`[convertPDFToImages] Skipping page ${pageNumber} due to render error: ${errMsg}`);
           new Notice(`Skipping page ${pageNumber} — PDF render error.`);
           skippedPages.push(pageNumber);
           continue;
         }
         if (errMsg.includes("Render timeout")) {
-          console.warn(`[convertPDFToImages] Skipping page ${pageNumber} (took too long).`);
+         logsList.push(`[convertPDFToImages] Skipping page ${pageNumber} (took too long).`);
           new Notice(`Skipping page ${pageNumber} — render timeout.`);
           skippedPages.push(pageNumber);
           continue;
         }
-        console.warn(`[convertPDFToImages] Skipping page ${pageNumber} due to unexpected error:`, err);
+        logsList.push(`[convertPDFToImages] Skipping page ${pageNumber} due to unexpected error:`, err);
         new Notice(`Skipping page ${pageNumber} — unexpected error.`);
         skippedPages.push(pageNumber);
         continue;
@@ -300,26 +321,26 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 150)
       const binary = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
       const pageImagePath = normalizePath(`${outputDir}/page-${pageNumber}.png`);
-      console.log(`[convertPDFToImages] Saving page ${pageNumber} to: ${pageImagePath}`);
+      logsList.push(`[convertPDFToImages] Saving page ${pageNumber} to: ${pageImagePath}`);
       new Notice(`Saving page ${pageNumber}/${pdf.numPages} to: ${pageImagePath}`);
 
       await adapter.writeBinary(pageImagePath, binary);
       outputPaths.push(pageImagePath);
     }
 
-    console.log(`[convertPDFToImages] Conversion complete. Generated ${outputPaths.length} images.`);
+    logsList.push(`[convertPDFToImages] Conversion complete. Generated ${outputPaths.length} images.`);
     if (skippedPages.length > 0) {
-      console.warn(`[convertPDFToImages] Skipped pages: ${skippedPages.join(", ")}`);
+      logsList.push(`[convertPDFToImages] Skipped pages: ${skippedPages.join(", ")}`);
       new Notice(`Conversion complete — skipped pages: ${skippedPages.join(", ")}`);
     } else {
-      console.log(`[convertPDFToImages] No pages were skipped.`);
+      logsList.push(`[convertPDFToImages] No pages were skipped.`);
       new Notice("PDF successfully converted to images — no skipped pages!");
     }
 
     return outputPaths;
 
   } catch (error) {
-    console.error(`[convertPDFToImages] Error during conversion:`, error);
+    logsList.push(`[convertPDFToImages] Error during conversion:`, error);
     new Notice(`Error converting PDF: ${error.message}`);
     throw error;
   }
@@ -327,7 +348,7 @@ async function convertPDFToImages(pdfPath: string, outputDir: string, dpi = 150)
 
 	  
 async function createMarkdownFromImages(folderPath: string, tags: string, extractText: boolean) {
-  console.log(`[createMarkdownFromImages] Starting process. Folder: ${folderPath}, Tags: ${tags}, Extract text: ${extractText}`);
+  logsList.push(`[createMarkdownFromImages] Starting process. Folder: ${folderPath}, Tags: ${tags}, Extract text: ${extractText}`);
 
   const tagsThenimagePaths: string[] = [];
   const yamlTags = tags.split(/\s*,\s*/);
@@ -343,11 +364,11 @@ async function createMarkdownFromImages(folderPath: string, tags: string, extrac
       )
       .sort((a: TFile, b: TFile) => a.stat.ctime - b.stat.ctime);
 
-    console.log(`[createMarkdownFromImages] Found ${files.length} image files in ${folderPath}`);
+    logsList.push(`[createMarkdownFromImages] Found ${files.length} image files in ${folderPath}`);
 
     for (const file of files) {
       const chosenFile = this.app.vault.getFileByPath(file.path);
-      console.log(`[createMarkdownFromImages] Processing file: ${file.path}`);
+      logsList.push(`[createMarkdownFromImages] Processing file: ${file.path}`);
       new Notice(`Extracting text from ${chosenFile?.path || 'unknown file'}`);
 
 	let textTwo: string = "";
@@ -357,30 +378,30 @@ async function createMarkdownFromImages(folderPath: string, tags: string, extrac
 		const extractor = getTextExtractor();
 		textTwo = (await extractor?.extractText(chosenFile)) ?? "";
 		if (!textTwo) {
-		console.warn(`[createMarkdownFromImages] Text extraction failed for ${file.path}`);
+		logsList.push(`[createMarkdownFromImages] Text extraction failed for ${file.path}`);
 		new Notice("Text extraction failed.");
 		textTwo = "Text extraction failed.";
 		} else {
-		console.log(`[createMarkdownFromImages] Text successfully extracted from ${file.path}`);
+		logsList.push(`[createMarkdownFromImages] Text successfully extracted from ${file.path}`);
 		}
 	} catch (textError) {
-		console.error(`[createMarkdownFromImages] Error extracting text from ${file.path}:`, textError);
+		logsList.push(`[createMarkdownFromImages] Error extracting text from ${file.path}:`, textError);
 		textTwo = "Error during text extraction.";
 	}
 	}
 
 
-      console.log(`[createMarkdownFromImages] Adding image to markdown: ![[${folderPath}/${file.name}]]`);
+      logsList.push(`[createMarkdownFromImages] Adding image to markdown: ![[${folderPath}/${file.name}]]`);
       tagsThenimagePaths.push(`![[${folderPath}/${file.name}]]\n${textTwo}\n`);
     }
 
     new Notice("Markdown file successfully created from images!");
-    console.log(`[createMarkdownFromImages] Markdown content:\n${tagsThenimagePaths.join('\n')}`);
+    logsList.push(`[createMarkdownFromImages] Markdown content:\n${tagsThenimagePaths.join('\n')}`);
 
     return tagsThenimagePaths.join("\n");
 
   } catch (error) {
-    console.error(`[createMarkdownFromImages] Error during markdown creation:`, error);
+    logsList.push(`[createMarkdownFromImages] Error during markdown creation:`, error);
     new Notice(`Error creating markdown: ${error.message}`);
     throw error;
   }
